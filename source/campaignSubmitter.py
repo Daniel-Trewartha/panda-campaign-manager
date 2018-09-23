@@ -43,7 +43,7 @@ def submitCampaign(Session,campSpecFile,listFile):
         iterList = []
         with open(listFile,'r') as f:
             for i in f:
-                iterList.append(i)
+                iterList.append(i.strip())
     else:
         iterList = ['']
 
