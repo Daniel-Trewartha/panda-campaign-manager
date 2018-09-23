@@ -34,7 +34,7 @@ def submitCampaign(Session,campSpecFile,listFile):
     walltime = campdef['jobtemplate']['walltime']
     queuename = campdef['jobtemplate']['queuename']
     try:
-        outputFile = campdef['jobtemplate']['outputFile']
+        outputFile = campdef['jobtemplate']['outputFile'].strip()
     except:
         outputFile = None
     command = campdef['jobtemplate']['command']
