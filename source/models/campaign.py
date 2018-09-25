@@ -53,18 +53,19 @@ class Campaign(Base):
             printStr += coloured("Status: %s \nSubStatus: %s \nCount: %s\nMost Recent: %s\nOldest: %s\n \n" % (status[0],status[1],statCount,mostRecent,oldest),colour)
         return printStr
 
-    def updateJobs(self,Session):
-        jobs_to_query = []
-        for j in self.jobs.all():
-            if j.status not in self.terminalStates():
-                jobs_to_query.append(j.pandaID)
+    def updateJobs(self,Session,recreate=False,jobs_to_query=None):
+        if (not jobs_to_query):
+            jobs_to_query = []
+            for j in self.jobs.all():
+                if j.status not in self.terminalStates():
+                    jobs_to_query.append(j.pandaID)
         o = Client.getJobStatus(jobs_to_query)
         updated = len(jobs_to_query)
         if (o):
             for j in o[1]:
                 try:
                     dbJob = Session.query(Job).filter(Job.pandaID == j.PandaID).one()
-                    dbJob.updateFromJobSpec(j)
+                    dbJob.updateFromJobSpec(j,recreate)
                     Session.commit()
                 except Exception as e:
                     updated -= 1

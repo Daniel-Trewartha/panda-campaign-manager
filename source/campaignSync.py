@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+
+import os, sys, time, json, subprocess, random, re, logging, traceback, yaml, datetime
+
+from models.campaign import Campaign
+from models.job import Job
+import Client
+#You have to draw the line somewhere.
+from termcolor import colored as coloured
+
+def syncCampaign(Session):
+
+    try:
+        output = Client.getAllJobs()
+        if output[0] != 0:
+            raise Exception("Server error")
+        else:
+            output = json.loads(output[1])['jobs']
+    except Exception as e:
+        logging.error(traceback.format_exc())
+        Session.rollback()
+        sys.exit(1)
+
+    jobsToRepopulate = []
+    for j in output:
+        try:
+            #Check for pre-existing job with this pandaid
+            if (Session.query(Job).filter(Job.pandaID.like(j['pandaid'])).first() is None and Session.query(Job).filter(Job.serverName.like(j['jobname'])).first() is None):
+                if(len(j['jobname'])>37):
+                    campaignName = j['jobname'][:-37]
+                    campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
+                    if (campaign is None):
+                        campaign = Campaign(name=campaignName,lastUpdate=datetime.datetime.utcnow())
+                        Session.add(campaign)
+                        Session.commit()
+                    #We can't recover the job script from the monitor output - we do that with another query below
+                    job = Job(script="unknown",campaignID=campaign.id,pandaID=j['pandaid'])
+                    Session.add(job)
+                    Session.commit()
+
+                    #Record that this campaign/job id pair was missing
+                    jobsToRepopulate.append((campaign.id,job.pandaID))
+        except Exception as e:
+            logging.error(traceback.format_exc())
+            Session.rollback()
+
+    #We need to query each job individually to get its job parameters
+    campsToRepopulate = set([seq[0] for seq in jobsToRepopulate])
+    for c in campsToRepopulate:
+        camp = Session.query(Campaign).get(c)
+        jobs = [seq[1] for seq in jobsToRepopulate if seq[0] == c]
+        camp.updateJobs(Session,recreate=True,jobs_to_query=jobs)
+        #Now update them all to make sure everything is legit
+        camp.updateJobs(Session)
+        #Now check to see if we have duplicate output files
+        for OF in Session.query(Job).with_entities(Job.outputFile).group_by(Job.outputFile).all():
+            jobsThisOF = Session.query(Job).filter(Job.outputFile.like(OF[0])).count()
+            if (jobsThisOF > 1):
+                print(coloured('Warning:'+str(jobsThisOF)+' job(s) have shared output file: \n'+OF[0]+'\n','red'))
+    return None

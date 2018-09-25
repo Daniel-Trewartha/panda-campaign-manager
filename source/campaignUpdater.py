@@ -9,7 +9,7 @@ def updateCampaign(Session,campName):
     try:
         campaign = Session.query(Campaign).filter(Campaign.name.like(campName)).first()
         if (campaign is None):
-            print(coloured("No campaign of name "+campName+" found. Currently defined campaigns are: \n"),"red")
+            print(coloured("No campaign of name "+campName+" found. Currently defined campaigns are: \n","red"))
             for c in Session.query(Campaign.name).all():
                 print(c[0])
             sys.exit(1)

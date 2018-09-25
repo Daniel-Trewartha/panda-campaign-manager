@@ -1,4 +1,4 @@
-import datetime, os, sys, subprocess
+import datetime, os, sys, subprocess, ast
 from sqlalchemy import Column, Integer, String, Interval, DateTime, JSON, event, ForeignKey
 from sqlalchemy.orm import relationship, mapper, joinedload
 from sqlalchemy.inspection import inspect
@@ -22,7 +22,7 @@ class Job(Base):
     serverName = Column('serverName',String,nullable=True,unique=True)
     nodes = Column('nodes',Integer,default=1)
     wallTime = Column('wallTime',String,default='00:01:00')
-    outputFile = Column('outputFile',String,nullable=True,unique=True)
+    outputFile = Column('outputFile',String,nullable=True)
     script = Column('script',String, nullable=False)
 
     #Attributes that will be updated from the panda server
@@ -35,10 +35,18 @@ class Job(Base):
     subStatus = Column('subStatus',String)
 
 
-    def updateFromJobSpec(self,jobSpec):
+    def updateFromJobSpec(self,jobSpec,recreate=False):
         self.status = jobSpec.jobStatus
         self.subStatus = jobSpec.jobSubStatus
         self.attemptNr = jobSpec.attemptNr
         self.computingSite = jobSpec.computingElement
         self.creationTime = jobSpec.creationTime
         self.stateChangeTime = jobSpec.stateChangeTime
+        #For lost jobs
+        if(recreate):
+            jobParams = ast.literal_eval(jobSpec.jobParameters)
+            self.servername = jobParams['name']
+            self.nodes = jobParams['nodes']
+            self.wallTime = jobParams['walltime']
+            self.script = jobParams['command']
+            self.outputFile = jobParams['outputFile']

@@ -8,7 +8,7 @@ from campaignStatus import statusCampaign
 from campaignSubmitter import submitCampaign
 from campaignDeleter import deleteCampaign
 from campaignResubmitter import resubmitCampaign
-from repopulateDatabase import repopulateDatabase
+from campaignSync import syncCampaign
 from termcolor import colored as coloured
 
 with session_scope(engine) as Session:
@@ -26,7 +26,7 @@ with session_scope(engine) as Session:
         print(statusCampaign(Session,args.CampaignName))
 
     def deleteCampaignWrap(args):
-        answer = raw_input('Really delete campaign all jobs for '+args.CampaignName+'?: [y/n]')
+        answer = raw_input(coloured('Really delete campaign all jobs for '+args.CampaignName+'?: [y/n]','red'))
 
         if not answer or answer[0].lower() != 'y':
             print 'Aborting'
@@ -36,15 +36,13 @@ with session_scope(engine) as Session:
     def resubmitCampaignWrap(args):
         print(resubmitCampaign(Session,args.CampaignName,args.resubmit_cancelled))
 
-    def repopulateDatabaseWrap(args):
-        print(coloured("Warning: Repopulating the database from the panda monitor is slow and places a large burden on the server. It should be used with care.",'red'))
-        answer = raw_input('Continue?: [y/n]')
+    def syncCampaignWrap(args):
+        answer = raw_input(coloured('Sync repopulates the local database from the panda server. It should be used only if the local database is missing jobs, otherwise use Update. Continue?: [y/n]','red'))
 
         if not answer or answer[0].lower() != 'y':
             print 'Aborting'
         else:
-            pass
-            #print(repopulateDatabase(Session))
+            print(syncCampaign(Session))
 
     parser = argparse.ArgumentParser(description='Campaign submitter and manager for Panda')
     subparser = parser.add_subparsers()
@@ -71,8 +69,8 @@ with session_scope(engine) as Session:
     delete.add_argument("CampaignName",help="Campaign to delete")
     delete.set_defaults(func=deleteCampaignWrap) 
 
-    repopulate = subparser.add_parser("Repopulate", help="Repopulate the database")
-    repopulate.set_defaults(func=repopulateDatabaseWrap) 
+    repopulate = subparser.add_parser("Sync", help="Populate the database with jobs from the server")
+    repopulate.set_defaults(func=syncCampaignWrap) 
 
     args = parser.parse_args()
     args.func(args)

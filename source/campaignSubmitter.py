@@ -54,6 +54,12 @@ def submitCampaign(Session,campSpecFile,listFile):
         else:
             jobCommand = command
             jobOutput = outputFile
+
+        #Check to see if this is a duplicate output file
+        jobsThisOF = Session.query(Job).filter(Job.outputFile.like(jobOutput)).count() 
+        if (jobsThisOF > 0):
+            print(coloured('Warning:'+str(jobsThisOF)+' job(s) already exist with output file: \n'+jobOutput+'\n','red'))
+
         dbJob = Job(script=jobCommand,nodes=nodes,wallTime=walltime,status="To Submit",campaignID=campaign.id,outputFile=jobOutput)
         dbJob.servername = campaign.name+subprocess.check_output('uuidgen')
         if (listFile):
