@@ -48,14 +48,19 @@ def syncCampaign(Session):
     #We need to query each job individually to get its job parameters
     campsToRepopulate = set([seq[0] for seq in jobsToRepopulate])
     for c in campsToRepopulate:
-        camp = Session.query(Campaign).get(c)
-        jobs = [seq[1] for seq in jobsToRepopulate if seq[0] == c]
-        camp.updateJobs(Session,recreate=True,jobs_to_query=jobs)
-        #Now update them all to make sure everything is legit
-        camp.updateJobs(Session)
-        #Now check to see if we have duplicate output files
-        for OF in Session.query(Job).with_entities(Job.outputFile).group_by(Job.outputFile).all():
-            jobsThisOF = Session.query(Job).filter(Job.outputFile.like(OF[0])).count()
-            if (jobsThisOF > 1):
-                print(coloured('Warning:'+str(jobsThisOF)+' job(s) have shared output file: \n'+OF[0]+'\n','red'))
+        try:
+            camp = Session.query(Campaign).get(c)
+            jobs = [seq[1] for seq in jobsToRepopulate if seq[0] == c]
+            #Recreate the jobs that were missing
+            camp.updateJobs(Session,recreate=True,jobs_to_query=jobs)
+            #Now update them all to make sure everything is legit
+            camp.updateJobs(Session)
+            #Now check to see if we have duplicate output files
+            for OF in Session.query(Job).with_entities(Job.outputFile).group_by(Job.outputFile).all():
+                jobsThisOF = Session.query(Job).filter(Job.outputFile.like(OF[0])).count()
+                if (jobsThisOF > 1):
+                    print(coloured('Warning:'+str(jobsThisOF)+' job(s) have shared output file: \n'+OF[0]+'\n','red'))
+        except Exception as e:
+            logging.error(traceback.format_exc())
+            Session.rollback()
     return None
