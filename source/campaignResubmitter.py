@@ -34,21 +34,26 @@ def resubmitCampaign(Session,campName,resubmit_cancelled):
 
     submitStatus = ['failed']
     submitStatus.append('cancelled') if resubmit_cancelled else submitStatus
-    print submitStatus
-    print resubmit_cancelled
-    for j in campaign.jobs.filter(Job.status.in_(submitStatus)):
-        print(j.id, j.status)
-        jobSpec = submissionTools.createJobSpec(walltime=j.wallTime, command=j.script, outputFile=j.outputFile, nodes=j.nodes, campaignID=campaign.id)
+    for j in campaign.jobs.filter(Job.status.in_(submitStatus)).all():
+        jobSpec = submissionTools.createJobSpec(walltime=j.wallTime, command=j.script, outputFile=j.outputFile, nodes=j.nodes, jobName=j.serverName)
         j.servername = jobSpec.jobName
         s,o = Client.submitJobs([jobSpec])
         try:
             j.pandaID = o[0][0]
             j.status = 'submitted'
             j.subStatus = 'submitted'
-            print(coloured(j.iterable.strip()+", "+str(o[0][0])+"\n",'green'))
+            if (j.iterable):
+                print(coloured(j.iterable.strip()+", "+str(o[0][0])+"\n",'green'))
+            else:
+                print(coloured(j.serverName.strip()+", "+str(o[0][0])+"\n",'green'))
         except Exception as e:
             logging.error(traceback.format_exc())
-            print(coloured(j.iterable.strip()+" job failed to submit\n",'red'))
+            if (j.iterable):
+                print(coloured(j.iterable.strip()+" job failed to submit\n",'red'))
+            elif (j.serverName):
+                print(coloured(j.serverName.strip()+" job failed to submit\n",'red'))
+            else:
+                print(coloured(str(j.id)+" job failed to submit\n",'red'))
             j.status = 'failed'
             j.subStatus = 'failed'
         Session.commit()

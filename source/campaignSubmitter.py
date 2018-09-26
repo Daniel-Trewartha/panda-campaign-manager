@@ -60,17 +60,15 @@ def submitCampaign(Session,campSpecFile,listFile):
         if (jobsThisOF > 0):
             print(coloured('Warning:'+str(jobsThisOF)+' job(s) already exist with output file: \n'+jobOutput+'\n','red'))
 
-        dbJob = Job(script=jobCommand,nodes=nodes,wallTime=walltime,status="To Submit",campaignID=campaign.id,outputFile=jobOutput)
-        dbJob.servername = campaign.name+subprocess.check_output('uuidgen')
+        dbJob = Job(script=jobCommand,nodes=nodes,wallTime=walltime,status="To Submit",subStatus="To Submit",campaignID=campaign.id,outputFile=jobOutput)
+        dbJob.serverName = campaign.name+subprocess.check_output('uuidgen')
         if (listFile):
             dbJob.iterable = iterable
 
-        Session.add(dbJob)
-        Session.commit()
-
-        jobSpec = submissionTools.createJobSpec(walltime=walltime, command=jobCommand, outputFile=jobOutput, nodes=nodes, jobName=dbJob.servername)
+        jobSpec = submissionTools.createJobSpec(walltime=walltime, command=jobCommand, outputFile=jobOutput, nodes=nodes, jobName=dbJob.serverName)
         s,o = Client.submitJobs([jobSpec])
         try:
+            print(o)
             dbJob.pandaID = o[0][0]
             dbJob.status = 'submitted'
             dbJob.subStatus = 'submitted'
@@ -80,6 +78,7 @@ def submitCampaign(Session,campSpecFile,listFile):
             print(coloured(iterable.strip()+" job failed to submit\n",'red'))
             dbJob.status = 'failed'
             dbJob.subStatus = 'failed'
+        Session.add(dbJob)
         Session.commit()
     
     return None

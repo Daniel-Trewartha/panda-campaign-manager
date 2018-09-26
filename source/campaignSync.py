@@ -26,21 +26,25 @@ def syncCampaign(Session):
     for j in output:
         try:
             #Check for pre-existing job with this pandaid
-            if (Session.query(Job).filter(Job.pandaID.like(j['pandaid'])).first() is None and Session.query(Job).filter(Job.serverName.like(j['jobname'])).first() is None):
-                if(len(j['jobname'])>37):
-                    campaignName = j['jobname'][:-37]
-                    campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
-                    if (campaign is None):
-                        campaign = Campaign(name=campaignName,lastUpdate=datetime.datetime.utcnow())
-                        Session.add(campaign)
+            #We have to evaluate these queries lazily to avoid throwing an unnecessary exception
+            if (j['pandaid'] and j['jobname']):
+                isExistingPandaID = Session.query(Job).filter(Job.pandaID.like(j['pandaid']))
+                isExistingJobName = Session.query(Job).filter(Job.serverName.like(j['jobname']))
+                if ( isExistingPandaID.first() is None and isExistingJobName.first() is None):
+                    if(len(j['jobname'])>37):
+                        campaignName = j['jobname'][:-37]
+                        campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
+                        if (campaign is None):
+                            campaign = Campaign(name=campaignName,lastUpdate=datetime.datetime.utcnow())
+                            Session.add(campaign)
+                            Session.commit()
+                        #We can't recover the job script from the monitor output - we do that with another query below
+                        job = Job(script="unknown",campaignID=campaign.id,pandaID=j['pandaid'],serverName=j['jobname'],status=j['jobstatus'],subStatus=j['jobsubstatus'])
+                        Session.add(job)
                         Session.commit()
-                    #We can't recover the job script from the monitor output - we do that with another query below
-                    job = Job(script="unknown",campaignID=campaign.id,pandaID=j['pandaid'])
-                    Session.add(job)
-                    Session.commit()
 
-                    #Record that this campaign/job id pair was missing
-                    jobsToRepopulate.append((campaign.id,job.pandaID))
+                        #Record that this campaign/job id pair was missing, but only after it's been committed
+                        jobsToRepopulate.append((campaign.id,job.pandaID))
         except Exception as e:
             logging.error(traceback.format_exc())
             Session.rollback()

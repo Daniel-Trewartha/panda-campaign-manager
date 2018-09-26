@@ -40,9 +40,9 @@ class Campaign(Base):
         printStr += "\n"
 
         for status in self.jobs.with_entities(Job.status,Job.subStatus).group_by(Job.status,Job.subStatus).all():
-            if (status[0] == "finished"):
+            if (status[0] in ["finished","staged"]):
                 colour = 'green'
-            if (status[0] in ["failed","cancelled"]):
+            elif (status[0] in ["failed","cancelled"]):
                 colour = 'red'
             else:
                 colour = 'blue'
@@ -63,14 +63,15 @@ class Campaign(Base):
         updated = len(jobs_to_query)
         if (o):
             for j in o[1]:
-                try:
-                    dbJob = Session.query(Job).filter(Job.pandaID == j.PandaID).one()
-                    dbJob.updateFromJobSpec(j,recreate)
-                    Session.commit()
-                except Exception as e:
-                    updated -= 1
-                    logging.error(traceback.format_exc())
-                    Session.rollback()
+                if (j):
+                    try:
+                        dbJob = Session.query(Job).filter(Job.pandaID == j.PandaID).one()
+                        dbJob.updateFromJobSpec(j,recreate)
+                        Session.commit()
+                    except Exception as e:
+                        updated -= 1
+                        logging.error(traceback.format_exc())
+                        Session.rollback()
             self.lastUpdate = datetime.datetime.utcnow()
             Session.commit()
         retStr = str(self.jobs.count() - len(jobs_to_query))+" jobs finished or failed\n"

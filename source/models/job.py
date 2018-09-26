@@ -19,7 +19,7 @@ class Job(Base):
     campaign = relationship("Campaign", back_populates="jobs")
 
     #Attributes created at submission time
-    serverName = Column('serverName',String,nullable=True,unique=True)
+    serverName = Column('serverName',String,nullable=False,unique=True)
     nodes = Column('nodes',Integer,default=1)
     wallTime = Column('wallTime',String,default='00:01:00')
     outputFile = Column('outputFile',String,nullable=True)
@@ -31,8 +31,8 @@ class Job(Base):
     computingSite = Column('computingSite',String,nullable=False,default="NULL")
     creationTime = Column('creationTime',DateTime,nullable=True) #Note that this is the time from the panda server - the existence of a creation time confirms that it exists on the server
     stateChangeTime = Column('stateChangeTime',DateTime,nullable=True)
-    status = Column('status',String)
-    subStatus = Column('subStatus',String)
+    status = Column('status',String,nullable=False)
+    subStatus = Column('subStatus',String,nullable=False)
 
 
     def updateFromJobSpec(self,jobSpec,recreate=False):
