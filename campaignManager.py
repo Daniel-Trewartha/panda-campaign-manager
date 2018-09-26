@@ -57,7 +57,7 @@ with session_scope(engine) as Session:
     update.set_defaults(func=updateCampaignWrap) 
 
     status = subparser.add_parser("Status", help="Provide a status report from a campaign")
-    status.add_argument("CampaignName",help="Campaign to report on")
+    status.add_argument("CampaignName",nargs='?',help="Campaign to report on",default=None)
     status.set_defaults(func=statusCampaignWrap) 
     
     resubmit= subparser.add_parser("Resubmit", help="Resubmit failed jobs")

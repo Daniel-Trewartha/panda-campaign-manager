@@ -1,1 +1,1 @@
-{"campaign": "contractions", "jobtemplate": {"nodes": 1, "walltime": "00:30:00", "queuename": "ANALY_TJLAB_LQCD", "outputFile": "/scratch/fred", "command": "  \n#!/bin/tcsh\necho \"hello world<iter>\"\nexit 0\n"}}
+{"campaign": "contractionsTwo:contract harder", "jobtemplate": {"nodes": 1, "walltime": "00:30:00", "queuename": "ANALY_TJLAB_LQCD", "outputFile": "/scratch/fred<iter>", "command": "  \n#!/bin/tcsh\necho \"hello world<iter>\"\nexit 0\n"}}

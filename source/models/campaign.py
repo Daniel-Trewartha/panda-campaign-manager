@@ -23,6 +23,27 @@ class Campaign(Base):
     #This is a function because SQLalchemy base implements __init__ and we don't want to play silly buggers with that
         return ["finished","failed","cancelled"]
 
+    def statesDict(self):
+        #Dictionary converting PanDA states into a smaller set, with a print colour
+        statesDict = {}
+        statesDict['Submitted'] = (["pending","activated","submitted","defined","assigned","sent","starting"],'blue')
+        statesDict['Running'] = (["running"],'yellow')
+        statesDict['Finished'] = (["holding","transferring"],'yellow')
+        statesDict['Successful'] = (["finished"],'green')
+        statesDict['Failed'] = (['failed'],'red')
+        statesDict['Cancelled'] = (['cancelled'],'red')
+        return statesDict
+
+    def shortReport(self,Session):
+        printStr = "\nCampaign: "+coloured(self.name,"yellow")+": "+str(self.jobs.count())+" total jobs\n"
+        for k,v in self.statesDict().iteritems():
+            stateCount = 0
+            for state in v[0]:
+                stateCount += self.jobs.filter(Job.status.like(state)).count()
+            if stateCount > 0:
+                printStr += coloured(k+": "+str(stateCount)+" jobs\n",v[1])
+        return printStr
+
     def statusReport(self,Session,options=None):
         printStr = "\n Status Report for Campaign: "+coloured(self.name,"yellow")+"\n"
         printStr += "Last updated: "+str(self.lastUpdate)+"\n"
