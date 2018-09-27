@@ -1,5 +1,6 @@
 import logging, traceback, os, sys
 from models.campaign import Campaign
+from models.job import Job
 #You have to draw the line somewhere.
 from termcolor import colored as coloured
 
@@ -22,6 +23,15 @@ def statusReport(Session,campName,short=False):
     else:
         return campaign.statusReport(Session)
 
+def checkIterables(Session):
+    #Check for iterables that are repeatedly failing across campaigns/jobs - indication that input files are corrupted or missing
+    retStr = ""
+    for iterable in Session.query(Job).with_entities(Job.iterable).group_by(Job.iterable).all():
+        failCount = Session.query(Job).filter(Job.iterable.isnot(None)).filter(Job.iterable == iterable[0]).filter(Job.status.like('failed')).count()
+        if failCount > 1:
+            retStr += coloured(str(failCount)+" failures with iterable ",'red')+coloured(iterable[0],'yellow')+coloured(". Possibly missing or corrupt input?\n","red")
+    return retStr
+
 def statusCampaign(Session,campName=None):
 
     if campName is not None:
@@ -30,4 +40,6 @@ def statusCampaign(Session,campName=None):
         retStr = ""
         for c in Session.query(Campaign.name).all():
             retStr += statusReport(Session,c[0],short=True)
+        retStr += '\n'
+        retStr += checkIterables(Session)
         return retStr

@@ -25,23 +25,23 @@ class Campaign(Base):
 
     def statesDict(self):
         #Dictionary converting PanDA states into a smaller set, with a print colour
-        statesDict = {}
-        statesDict['Submitted'] = (["pending","activated","submitted","defined","assigned","sent","starting"],'blue')
-        statesDict['Running'] = (["running"],'yellow')
-        statesDict['Finished'] = (["holding","transferring"],'yellow')
-        statesDict['Successful'] = (["finished"],'green')
-        statesDict['Failed'] = (['failed'],'red')
-        statesDict['Cancelled'] = (['cancelled'],'red')
+        statesDict = []
+        statesDict.append(('Submitted',["pending","activated","submitted","defined","assigned","sent","starting"],'blue'))
+        statesDict.append(('Running',["running"],'yellow'))
+        statesDict.append(('Validating',["holding","transferring"],'yellow'))
+        statesDict.append(('Successful',["finished"],'green'))
+        statesDict.append(('Failed',['failed'],'red'))
+        statesDict.append(('Cancelled',['cancelled'],'red'))
         return statesDict
 
     def shortReport(self,Session):
         printStr = "\nCampaign: "+coloured(self.name,"yellow")+": "+str(self.jobs.count())+" total jobs\n"
-        for k,v in self.statesDict().iteritems():
+        for i in self.statesDict():
             stateCount = 0
-            for state in v[0]:
+            for state in i[1]:
                 stateCount += self.jobs.filter(Job.status.like(state)).count()
             if stateCount > 0:
-                printStr += coloured(k+": "+str(stateCount)+" jobs\n",v[1])
+                printStr += coloured(i[0]+": "+str(stateCount)+" jobs\n",i[2])
         return printStr
 
     def statusReport(self,Session,options=None):

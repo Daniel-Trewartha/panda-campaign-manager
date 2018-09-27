@@ -1,0 +1,1 @@
+{"campaign": "SuccessTest", "jobtemplate": {"nodes": 1, "walltime": "00:30:00", "queuename": "ANALY_TJLAB_LQCD", "outputFile": "/u/home/danielt/fred<iter>", "command": "  \n#!/bin/tcsh\necho \"hi<iter>\" > /u/home/danielt/fred<iter>\nexit 0\n"}}
