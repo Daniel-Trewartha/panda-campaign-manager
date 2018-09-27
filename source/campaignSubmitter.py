@@ -61,8 +61,12 @@ def submitCampaign(Session,campSpecFile,listFile):
             print(coloured('Warning:'+str(jobsThisOF)+' job(s) already exist with output file: \n'+jobOutput+'\n','red'))
 
         dbJob = Job(script=jobCommand,nodes=nodes,wallTime=walltime,status="To Submit",subStatus="To Submit",campaignID=campaign.id,outputFile=jobOutput)
-        dbJob.serverName = campaign.name+subprocess.check_output('uuidgen')
-        if (listFile):
+        dbJob.serverName = 'c:'+campaign.name+':'
+        if listFile:
+            dbJob.serverName += 'i:'+iterable+':'
+        dbJob.serverName += subprocess.check_output('uuidgen')
+        
+        if listFile:
             dbJob.iterable = iterable
 
         jobSpec = submissionTools.createJobSpec(walltime=walltime, command=jobCommand, outputFile=jobOutput, nodes=nodes, jobName=dbJob.serverName)

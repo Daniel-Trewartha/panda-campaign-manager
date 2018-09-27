@@ -9,6 +9,22 @@ import Client
 #You have to draw the line somewhere.
 from termcolor import colored as coloured
 
+#Unpack a server name into a campaign name, optionally iterable
+def unpackServerName(name):
+    campFormat = 'c:[^:]*:'
+    iterableFormat = 'i:[^:]*:'
+    campP = re.compile(campFormat)
+    iterableP = re.compile(iterableFormat)
+    try:
+        cN = campP.search(name).group()[2:-1]
+    except:
+        cN = None
+    try:
+        i = iterableP.search(name).group()[2:-1]
+    except:
+        i = None
+    return (cN,i)
+
 def syncCampaign(Session):
 
     try:
@@ -32,19 +48,26 @@ def syncCampaign(Session):
                 isExistingJobName = Session.query(Job).filter(Job.serverName.like(j['jobname']))
                 if ( isExistingPandaID.first() is None and isExistingJobName.first() is None):
                     if(len(j['jobname'])>37):
-                        campaignName = j['jobname'][:-37]
-                        campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
-                        if (campaign is None):
-                            campaign = Campaign(name=campaignName,lastUpdate=datetime.datetime.utcnow())
-                            Session.add(campaign)
+                        #See if the jobname fits the format
+                        campaignName, i = unpackServerName(j['jobname'])
+                        if(campaignName):
+                            campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
+                            if (campaign is None):
+                                campaign = Campaign(name=campaignName,lastUpdate=datetime.datetime.utcnow())
+                                Session.add(campaign)
+                                Session.commit()
+                            #We can't recover the job script from the monitor output - we do that with another query below
+                            job = Job(script="unknown",campaignID=campaign.id,pandaID=j['pandaid'],serverName=j['jobname'],status=j['jobstatus'],subStatus=j['jobsubstatus'])
+                            if i:
+                                job.iterable = i
+                            #In some instances panda server can report a null substatus. Converting these to empty strings to fulfil database rules
+                            if not j['jobsubstatus']:
+                                job.subStatus = ""
+                            Session.add(job)
                             Session.commit()
-                        #We can't recover the job script from the monitor output - we do that with another query below
-                        job = Job(script="unknown",campaignID=campaign.id,pandaID=j['pandaid'],serverName=j['jobname'],status=j['jobstatus'],subStatus=j['jobsubstatus'])
-                        Session.add(job)
-                        Session.commit()
 
-                        #Record that this campaign/job id pair was missing, but only after it's been committed
-                        jobsToRepopulate.append((campaign.id,job.pandaID))
+                            #Record that this campaign/job id pair was missing, but only after it's been committed
+                            jobsToRepopulate.append((campaign.id,job.pandaID))
         except Exception as e:
             logging.error(traceback.format_exc())
             Session.rollback()
