@@ -19,7 +19,9 @@ def submitCampaign(Session,campSpecFile,listFile):
         campdef = submissionTools.PandaJobsJSONParser.parse(campSpecFile)
         campaign = Session.query(Campaign).filter(Campaign.name.like(campdef['campaign'])).first()
         if (campaign is None):
-            campaign = Campaign(name=campdef['campaign'],lastUpdate=datetime.datetime.utcnow())
+            #Don't let colons into campaign names
+            campName = re.sub(':','',campdef['campaign'])
+            campaign = Campaign(name=campName,lastUpdate=datetime.datetime.utcnow())
             Session.add(campaign)
             Session.commit()
     except Exception as e:
@@ -30,46 +32,38 @@ def submitCampaign(Session,campSpecFile,listFile):
 
     aSrvID = None
 
-    nodes = campdef['jobtemplate']['nodes']
-    walltime = campdef['jobtemplate']['walltime']
-    queuename = campdef['jobtemplate']['queuename']
-    try:
-        outputFile = campdef['jobtemplate']['outputFile'].strip()
-    except:
-        outputFile = None
-    command = campdef['jobtemplate']['command']
+    for j in campdef['jobs']:
+        nodes = j['nodes']
+        walltime = j['walltime']
+        queuename = j['queuename']
+        try:
+            outputFile = j['outputFile'].strip()
+        except:
+            outputFile = None
+        command = j['command']
 
-    if (listFile):
-        iterList = []
-        with open(listFile,'r') as f:
-            for i in f:
-                iterList.append(i.strip())
-    else:
-        iterList = ['']
-
-    for iterable in iterList:
-        if (listFile):
-            jobCommand = re.sub('<iter>',iterable,command)
-            jobOutput = re.sub('<iter>',iterable,outputFile)
-        else:
-            jobCommand = command
-            jobOutput = outputFile
+        try:
+            iterable = j['iterable'].strip()
+        except:
+            iterable = None
 
         #Check to see if this is a duplicate output file
-        jobsThisOF = Session.query(Job).filter(Job.outputFile.like(jobOutput)).count() 
+        jobsThisOF = Session.query(Job).filter(Job.outputFile.like(outputFile)).count() 
         if (jobsThisOF > 0):
-            print(coloured('Warning:'+str(jobsThisOF)+' job(s) already exist with output file: \n'+jobOutput+'\n','red'))
+            print(coloured('Warning:'+str(jobsThisOF)+' job(s) already exist with output file: \n'+outputFile+'\n','red'))
 
-        dbJob = Job(script=jobCommand,nodes=nodes,wallTime=walltime,status="To Submit",subStatus="To Submit",campaignID=campaign.id,outputFile=jobOutput)
+        dbJob = Job(script=command,nodes=nodes,wallTime=walltime,status="To Submit",subStatus="To Submit",campaignID=campaign.id,outputFile=outputFile)
         dbJob.serverName = 'c:'+campaign.name+':'
-        if listFile:
+        if iterable:
             dbJob.serverName += 'i:'+iterable+':'
+        if outputFile:
+            #Panda Server doesn't like slashes in its job names
+            dbJob.serverName += 'oF:'+re.sub('/',';',outputFile)+':'
         dbJob.serverName += subprocess.check_output('uuidgen')
         
-        if listFile:
-            dbJob.iterable = iterable
+        dbJob.iterable = iterable
 
-        jobSpec = submissionTools.createJobSpec(walltime=walltime, command=jobCommand, outputFile=jobOutput, nodes=nodes, jobName=dbJob.serverName)
+        jobSpec = submissionTools.createJobSpec(walltime=walltime, command=command, outputFile=outputFile, nodes=nodes, jobName=dbJob.serverName)
         s,o = Client.submitJobs([jobSpec])
         try:
             print(o)

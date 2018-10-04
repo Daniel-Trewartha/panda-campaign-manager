@@ -13,17 +13,25 @@ from termcolor import colored as coloured
 def unpackServerName(name):
     campFormat = 'c:[^:]*:'
     iterableFormat = 'i:[^:]*:'
+    oFFormat = 'oF:[^:]*:'
     campP = re.compile(campFormat)
     iterableP = re.compile(iterableFormat)
+    oFP = re.compile(oFFormat)
     try:
         cN = campP.search(name).group()[2:-1]
+        #No colons in campaign names
+        cN = re.sub(':','',cN)
     except:
         cN = None
     try:
         i = iterableP.search(name).group()[2:-1]
     except:
         i = None
-    return (cN,i)
+    try:
+        oF = iterableoF.search(name).group()[3:-1]
+    except:
+        oF = None
+    return (cN,i,oF)
 
 def syncCampaign(Session):
 
@@ -49,7 +57,7 @@ def syncCampaign(Session):
                 if ( isExistingPandaID.first() is None and isExistingJobName.first() is None):
                     if(len(j['jobname'])>37):
                         #See if the jobname fits the format
-                        campaignName, i = unpackServerName(j['jobname'])
+                        campaignName, i, oF = unpackServerName(j['jobname'])
                         if(campaignName):
                             campaign = Session.query(Campaign).filter(Campaign.name.like(campaignName)).first()
                             if (campaign is None):
