@@ -8,7 +8,7 @@ from models.campaign import Campaign
 from termcolor import colored as coloured
 import submissionTools
 
-def submitCampaign(Session,campSpecFile,listFile):
+def submitCampaign(Session,jobsFile):
 
 
     # read yaml description
@@ -16,7 +16,7 @@ def submitCampaign(Session,campSpecFile,listFile):
     jobdef = None
 
     try:
-        campdef = submissionTools.PandaJobsJSONParser.parse(campSpecFile)
+        campdef = submissionTools.PandaJobsJSONParser.parse(jobsFile)
         campaign = Session.query(Campaign).filter(Campaign.name.like(campdef['campaign'])).first()
         if (campaign is None):
             #Don't let colons into campaign names

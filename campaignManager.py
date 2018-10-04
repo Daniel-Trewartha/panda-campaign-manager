@@ -17,7 +17,7 @@ with session_scope(engine) as Session:
     
     def submitCampaignWrap(args):
         #We don't just print this after completion - submission can take a while, and so progress is reported incrementally
-        submitCampaign(Session,args.template,args.list)
+        submitCampaign(Session,args.jobsFile)
 
     def updateCampaignWrap(args):
         print(updateCampaign(Session,args.CampaignName))
@@ -48,8 +48,7 @@ with session_scope(engine) as Session:
     subparser = parser.add_subparsers()
 
     submit = subparser.add_parser("Submit", help="Submit a list of jobs from a job template.")
-    submit.add_argument("template",help="A job template file")
-    submit.add_argument("list",nargs='?',help="A list iterables to create multiple jobs",default='')
+    submit.add_argument("jobsFile",help="A job specification file")
     submit.set_defaults(func=submitCampaignWrap)
 
     update = subparser.add_parser("Update", help="Update the jobs in a campaign from the panda server")
